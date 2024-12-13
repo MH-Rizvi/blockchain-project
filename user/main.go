@@ -1,101 +1,94 @@
 package main
 
 import (
-	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"os"
-	"time"
+	"log"
+	"net"
 )
 
-// Transaction structure
-type Transaction struct {
-	DatasetHash   string `json:"dataset_hash"`
-	AlgorithmHash string `json:"algorithm_hash"`
-	OutputHash    string `json:"output_hash"`
-}
-
-// LoadTransaction fetches dataset and algorithm, runs them, and creates an output hash
-func LoadTransaction() Transaction {
-	// Simulate fetching data from IPFS
-	datasetHash := "ipfs_dataset_hash_placeholder"
-	algorithmHash := "ipfs_algorithm_hash_placeholder"
-
-	// Simulate running the algorithm on the dataset to produce an output hash
-	outputHash := calculateOutputHash(datasetHash, algorithmHash)
-
-	return Transaction{
-		DatasetHash:   datasetHash,
-		AlgorithmHash: algorithmHash,
-		OutputHash:    outputHash,
+// AI deterministic function: simple K-means (just for illustration)
+func kMeans(dataset [][]float64) []float64 {
+	var sum []float64
+	for _, data := range dataset {
+		if len(sum) == 0 {
+			sum = make([]float64, len(data))
+		}
+		for i, val := range data {
+			sum[i] += val
+		}
 	}
+	for i := range sum {
+		sum[i] /= float64(len(dataset))
+	}
+	return sum
 }
 
-// calculateOutputHash simulates hashing dataset and algorithm to create an output
-func calculateOutputHash(dataset, algorithm string) string {
-	// Simple hash calculation placeholder (use actual cryptographic hash in production)
-	return fmt.Sprintf("%x", (len(dataset)+len(algorithm))^0xabc)
+// Create Transaction: Dataset, Algorithm, Output Hash
+func createTransaction() (string, string, string) {
+	// Example dataset (e.g., 2D points for K-means)
+	dataset := [][]float64{
+		{1.0, 2.0},
+		{3.0, 4.0},
+		{5.0, 6.0},
+	}
+
+	// Algorithm (simple K-means here)
+	algorithm := "K-means"
+
+	// Get output from AI function (deterministic)
+	output := kMeans(dataset)
+
+	// Hash the dataset, algorithm, and output
+	datasetHash := hashData(dataset)
+	algorithmHash := hashData([]string{algorithm})
+	outputHash := hashData(output)
+
+	// Return the transaction as JSON
+	transaction := map[string]string{
+		"datasetHash":   datasetHash,
+		"algorithmHash": algorithmHash,
+		"outputHash":    outputHash,
+	}
+
+	transactionJSON, _ := json.Marshal(transaction)
+	return string(transactionJSON), datasetHash, outputHash
 }
 
-// sendTransactionToMiner sends a transaction to a miner node
-func sendTransactionToMiner(transaction Transaction, minerAddress string) error {
-	url := fmt.Sprintf("http://%s/addTransaction", minerAddress)
+// Hash the data (general-purpose hash function)
+func hashData(data interface{}) string {
+	dataBytes, _ := json.Marshal(data)
+	hash := sha256.New()
+	hash.Write(dataBytes)
+	return fmt.Sprintf("%x", hash.Sum(nil))
+}
 
-	// Serialize the transaction
-	data, err := json.Marshal(transaction)
+func sendTransaction(transaction string) {
+	conn, err := net.Dial("tcp", "miner-node:8081") // Ensure this is the correct address of the miner node
 	if err != nil {
-		return fmt.Errorf("failed to marshal transaction: %v", err)
+		log.Fatal("Connection failed:", err)
 	}
+	defer conn.Close()
 
-	// Send the transaction via HTTP POST
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
+	// Send the transaction properly
+	_, err = conn.Write([]byte(transaction + "\n")) // Adding a newline as delimiter
 	if err != nil {
-		return fmt.Errorf("failed to send transaction: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("miner responded with status code: %d", resp.StatusCode)
+		log.Fatal("Failed to send transaction:", err)
 	}
 
-	return nil
+	log.Println("Transaction sent to miner node")
 }
 
 func main() {
-	// Fetch user node environment variable
-	userID := os.Getenv("USER_ID")
-	if userID == "" {
-		userID = "default-user"
-	}
+	// Create a transaction
+	transaction, datasetHash, outputHash := createTransaction()
 
-	// Define the miner addresses (replace with actual miner IPs/ports in Docker)
-	minerAddresses := []string{
-		"miner-node-1:8081", // Miner 1
-		"miner-node-2:8082", // Miner 2
-		"miner-node-3:8083", // Miner 3
-	}
+	// Log the transaction for debugging
+	log.Printf("Transaction created: %s\n", transaction)
+	log.Printf("Dataset Hash: %s\n", datasetHash)
+	log.Printf("Output Hash: %s\n", outputHash)
 
-	// User node lifecycle: Send exactly 4 transactions
-	for i := 0; i < 4; i++ { // Send exactly 4 transactions
-		// Create a new transaction
-		transaction := LoadTransaction()
-		fmt.Printf("User %s created transaction: %+v\n", userID, transaction)
-
-		// Send the transaction to all miners
-		for _, minerAddress := range minerAddresses {
-			err := sendTransactionToMiner(transaction, minerAddress)
-			if err != nil {
-				fmt.Printf("Error sending transaction to miner %s: %v\n", minerAddress, err)
-			} else {
-				fmt.Printf("Transaction successfully sent to miner %s\n", minerAddress)
-			}
-		}
-
-		// Wait before creating the next transaction
-		time.Sleep(10 * time.Second)
-	}
-
-	// After sending 4 transactions, stop the user node
-	fmt.Println("Sent 4 transactions. Shutting down user node.")
+	// Send the transaction to the miner node
+	sendTransaction(transaction)
 }

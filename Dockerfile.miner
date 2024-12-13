@@ -1,17 +1,18 @@
-# Start with the official Go image
-FROM golang:1.20-alpine
+# Use Go's official image as a base
+FROM golang:1.21-alpine
 
-# Set the working directory inside the container
+# Set working directory inside the container
 WORKDIR /app
 
-# Copy the Go source code into the container
-COPY . .
+# Copy the miner node Go code into the container
+COPY miner/main.go .
 
-# Install necessary dependencies
+# Set up Go modules
+RUN go mod init blockchain
 RUN go mod tidy
 
-# Expose the port that your miner node will run on
-EXPOSE 8081
+# Build the miner node binary
+RUN go build -o miner_node main.go
 
-# Set the entry point for the miner application
-CMD ["go", "run", "miner/main.go"]
+# Run the miner node binary when the container starts
+CMD ["./miner_node"]

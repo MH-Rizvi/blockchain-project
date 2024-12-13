@@ -1,81 +1,29 @@
-version: '3'
+version: '3.8'
+
 services:
-  miner-node-1:
+  miner-node:
     build:
       context: .
       dockerfile: Dockerfile.miner
-    ports:
-      - "8081:8081"
+    container_name: miner-node
     networks:
       - blockchain-net
-    environment:
-      - NODE_ID=miner-node-1
-
-  miner-node-2:
-    build:
-      context: .
-      dockerfile: Dockerfile.miner
     ports:
-      - "8082:8081"
-    networks:
-      - blockchain-net
+      - "8081:8081"  # Expose miner port to the outside
     environment:
-      - NODE_ID=miner-node-2
+      - MINER_PORT=8081  # Set miner port, though this is mainly internal
+    restart: unless-stopped
 
-  miner-node-3:
-    build:
-      context: .
-      dockerfile: Dockerfile.miner
-    ports:
-      - "8083:8081"
-    networks:
-      - blockchain-net
-    environment:
-      - NODE_ID=miner-node-3
-
-  user-node-1:
+  user-node:
     build:
       context: .
       dockerfile: Dockerfile.user
-    ports:
-      - "8084:8080"  # Adjusted internal/external port to match your Go code
+    container_name: user-node
     networks:
       - blockchain-net
     environment:
-      - NODE_ID=user-node-1
-
-  user-node-2:
-    build:
-      context: .
-      dockerfile: Dockerfile.user
-    ports:
-      - "8085:8080"  # Adjusted internal/external port to match your Go code
-    networks:
-      - blockchain-net
-    environment:
-      - NODE_ID=user-node-2
-
-  user-node-3:
-    build:
-      context: .
-      dockerfile: Dockerfile.user
-    ports:
-      - "8086:8080"  # Adjusted internal/external port to match your Go code
-    networks:
-      - blockchain-net
-    environment:
-      - NODE_ID=user-node-3
-
-  user-node-4:
-    build:
-      context: .
-      dockerfile: Dockerfile.user
-    ports:
-      - "8087:8080"  # Adjusted internal/external port to match your Go code
-    networks:
-      - blockchain-net
-    environment:
-      - NODE_ID=user-node-4
+      - MINER_ADDRESS=miner-node:8081  # Use miner container's hostname and port
+    restart: unless-stopped
 
 networks:
   blockchain-net:
