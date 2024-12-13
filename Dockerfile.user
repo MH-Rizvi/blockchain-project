@@ -1,0 +1,17 @@
+# Start with the official Go image
+FROM golang:1.20-alpine
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy the Go source code into the container
+COPY . .
+
+# Install necessary dependencies
+RUN go mod tidy
+
+# Expose the port that your user node will run on
+EXPOSE 8080
+
+# Set the entry point for the user application
+CMD ["go", "run", "user/main.go"]

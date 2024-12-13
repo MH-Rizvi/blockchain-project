@@ -1,54 +1,81 @@
-version: '3.7'
-
+version: '3'
 services:
-  user-node-1:
-    build: ./user
+  miner-node-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.miner
     ports:
       - "8081:8081"
     networks:
       - blockchain-net
-
-  user-node-2:
-    build: ./user
-    ports:
-      - "8082:8082"
-    networks:
-      - blockchain-net
-
-  user-node-3:
-    build: ./user
-    ports:
-      - "8083:8083"
-    networks:
-      - blockchain-net
-
-  user-node-4:
-    build: ./user
-    ports:
-      - "8084:8084"
-    networks:
-      - blockchain-net
-
-  miner-node-1:
-    build: ./miner
-    ports:
-      - "8085:8085"
-    networks:
-      - blockchain-net
+    environment:
+      - NODE_ID=miner-node-1
 
   miner-node-2:
-    build: ./miner
+    build:
+      context: .
+      dockerfile: Dockerfile.miner
     ports:
-      - "8086:8086"
+      - "8082:8081"
     networks:
       - blockchain-net
+    environment:
+      - NODE_ID=miner-node-2
 
   miner-node-3:
-    build: ./miner
+    build:
+      context: .
+      dockerfile: Dockerfile.miner
     ports:
-      - "8087:8087"
+      - "8083:8081"
     networks:
       - blockchain-net
+    environment:
+      - NODE_ID=miner-node-3
+
+  user-node-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.user
+    ports:
+      - "8084:8080"  # Adjusted internal/external port to match your Go code
+    networks:
+      - blockchain-net
+    environment:
+      - NODE_ID=user-node-1
+
+  user-node-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.user
+    ports:
+      - "8085:8080"  # Adjusted internal/external port to match your Go code
+    networks:
+      - blockchain-net
+    environment:
+      - NODE_ID=user-node-2
+
+  user-node-3:
+    build:
+      context: .
+      dockerfile: Dockerfile.user
+    ports:
+      - "8086:8080"  # Adjusted internal/external port to match your Go code
+    networks:
+      - blockchain-net
+    environment:
+      - NODE_ID=user-node-3
+
+  user-node-4:
+    build:
+      context: .
+      dockerfile: Dockerfile.user
+    ports:
+      - "8087:8080"  # Adjusted internal/external port to match your Go code
+    networks:
+      - blockchain-net
+    environment:
+      - NODE_ID=user-node-4
 
 networks:
   blockchain-net:
